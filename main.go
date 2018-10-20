@@ -229,14 +229,34 @@ func assetsHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("[REQ]\t%s\n", requestURL)
 
-	// FIXME go-bindataなどでバイナリに埋め込む
+	// ローカルの./asserts/...があればそちらを優先する
 	base := "assets"
 	reqPath := requestURL
 	if reqPath == "/" {
 		reqPath = "/index.html"
 	}
-	file, _ := os.Open(base + reqPath)
-	all, _ := ioutil.ReadAll(file)
+	file, err := os.Open(base + reqPath)
+
+	var all []byte
+	if err == nil {
+		all, err = ioutil.ReadAll(file)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+	} else {
+		// ローカルの./asserts/がないので埋め込んだassetsを読み出す
+		path := "/" + base + reqPath
+		f, err := Assets.Open(path)
+		if err != nil {
+			log.Println("Assets:" + path + ": " + err.Error())
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		all, _ = ioutil.ReadAll(f)
+	}
+	defer file.Close()
 
 	if strings.HasSuffix(reqPath, ".html") {
 		w.Header().Add("Content-Type", "text/html; charset=utf-8")
@@ -245,7 +265,7 @@ func assetsHandler(w http.ResponseWriter, r *http.Request) {
 	} else if strings.HasSuffix(reqPath, ".js") {
 		w.Header().Add("Content-Type", "application/javascript")
 	} else {
-		// TODO ひとまずほっといてOK
+		// TODO ユースケースないのでほっとく
 		log.Printf("Unknown file type.")
 	}
 	// HeaderはWriteHeader/Writeを呼ぶ前に設定する必要がある
@@ -524,7 +544,7 @@ func BuildTestCasesFromXlsx(xlsx *excelize.File) ([]*TestCase, error) {
 			if valid {
 				testCases = append(testCases, newTestCase)
 			} else {
-				err = errors.New(fmt.Sprintf("[Error] Line number:%d / %s\n", i, err.Error()))
+				err = errors.New(fmt.Sprintf("[Error] Line#: %d / %s\n", i+1, err.Error()))
 				log.Println(err.Error())
 				return nil, err
 			}
