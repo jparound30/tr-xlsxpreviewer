@@ -1,5 +1,11 @@
 testcase.csv
+tr_xlsxpreviewer_linux_amd64
+tr_xlsxpreviewer_macos
+tr_xlsxpreviewer_win_amd64.exe
+~*.xlsx
+
 # Default ignored files
+/.idea
 /.idea/shelf/
 /.idea/workspace.xml
 
