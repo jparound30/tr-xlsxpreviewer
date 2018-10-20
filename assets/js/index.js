@@ -72,6 +72,9 @@ let app = new Vue({
       .catch(reason => {
         console.error(reason);
         self.loading = false;
+        self.snackbar = true;
+        self.snackbarText = "Error: Input file maybe contain some invalid content";
+        self.snackbarTimeout = 10 * 1000;
       });
 
     // WS

@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
     <link href="/css/index.css" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+    <link rel="stylesheet" href="//cdn.materialdesignicons.com/2.8.94/css/materialdesignicons.min.css">
 
     <script src="/js/pagedown/Markdown.Converter.js"></script>
     <script src="/js/pagedown/Markdown.Sanitizer.js"></script>
@@ -16,6 +17,15 @@
 <body>
 <div id="app">
     <v-app v-cloak>
+        <v-toolbar dense light>
+            <v-toolbar-title>Preview</v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-toolbar-items>
+                <v-btn flat href="/api/downloadCsv">
+                    <v-icon light>mdi-download</v-icon>CSV download
+                </v-btn>
+            </v-toolbar-items>
+        </v-toolbar>
         <v-container fluid grid-list-md>
             <div>
                 <div><a href="http://docs.gurock.com/testrail-userguide/userguide-editor" target="_blank">Official Markdown Reference</a></div>

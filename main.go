@@ -433,6 +433,25 @@ func writer(ws *websocket.Conn, watcher *fsnotify.Watcher) {
 	}
 }
 
+func testCaseDownloadCsvHandler(w http.ResponseWriter, r *http.Request) {
+	requestURL := r.URL.String()
+	log.Printf("[REQ]\t%s\n", requestURL)
+
+	testCases, err := ConvertExcelToJson()
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	header := w.Header()
+	header.Add("Content-Type", "text/csv")
+	header.Add("Content-Disposition", "attachment; filename=\""+DefaultOutputFile[2:]+"\"")
+
+	// CSVに吐き出す
+	WriteCsv(w, testCases)
+}
+
 var (
 	inputFile  string
 	outputFile string
@@ -452,36 +471,28 @@ func main() {
 	flag.StringVar(&outputFile, "output", DefaultOutputFile, "Specify file path of output [CSV file].")
 	flag.Parse()
 
-	// 指定ファイルオープンしexcelize.Fileを取得
-	xlsx, err := excelize.OpenFile(inputFile)
-	if err != nil {
-		log.Fatal(err)
-		return
+	testCases, err := ConvertExcelToJson()
+	if err == nil {
+		// 出力先を生成(CSVファイル)
+		outCsv, err := os.OpenFile(outputFile, os.O_CREATE|os.O_RDWR, 0644)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		defer func() {
+			_ = outCsv.Close()
+		}()
+
+		// CSVに吐き出す
+		WriteCsv(outCsv, testCases)
+	} else {
+		// CSV変換失敗だがとりあえず起動はする
+		log.Println(err)
 	}
-
-	var testCases []*TestCase
-
-	testCases, err = BuildTestCasesFromXlsx(xlsx)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	// 出力先を生成(CSVファイル)
-	outCsv, err := os.OpenFile(outputFile, os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	defer func() {
-		_ = outCsv.Close()
-	}()
-
-	// CSVに吐き出す
-	WriteCsv(outCsv, testCases)
 
 	http.HandleFunc("/ws", serveWs)
 	http.HandleFunc("/api/testcases", testCaseDataHandler)
+	http.HandleFunc("/api/downloadCsv", testCaseDownloadCsvHandler)
 	http.HandleFunc("/", assetsHandler)
 
 	log.Fatal(http.ListenAndServe("localhost:10080", nil))
@@ -559,6 +570,8 @@ func BuildTestCasesFromXlsx(xlsx *excelize.File) ([]*TestCase, error) {
 func WriteCsv(outCsv io.Writer, testCases []*TestCase) {
 	csvWriter := csv.NewWriter(outCsv)
 	defer csvWriter.Flush()
+	// BOM (Excel で utf-8 CSVを開けるようにするためにBOMのUTF-8にする)
+	_, _ = outCsv.Write([]byte{0xEF, 0xBB, 0xBF})
 	// Header
 	_ = csvWriter.Write(CsvHeaderArray)
 	// Body
