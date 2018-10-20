@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Preview</title>
+  <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
+  <link href="/css/index.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+
+  <script src="/js/pagedown/Markdown.Converter.js"></script>
+  <script src="/js/pagedown/Markdown.Sanitizer.js"></script>
+  <script src="/js/pagedown/Markdown.Editor.js"></script>
+
+</head>
+<body>
+<div id="app">
+  <v-app v-cloak>
+    <v-container fluid grid-list-md>
+      <v-data-iterator
+              :items="items"
+              :rows-per-page-items="rowsPerPageItems"
+              :pagination.sync="pagination"
+              content-tag="v-layout"
+              row
+              wrap
+              loading="loading"
+              ref="dataiterator"
+      >
+        <v-flex
+                slot="item"
+                slot-scope="props"
+                xs12
+                sm12
+                md12
+                lg12
+        >
+          <v-card>
+            <v-card-title>
+              <v-breadcrumbs divider="/">
+                <v-breadcrumbs-item
+                        v-for="section in props.item.Sections"
+                        :key="section"
+                >
+                  {{ section }}
+                </v-breadcrumbs-item>
+              </v-breadcrumbs>
+              <h4>ID: {{ props.item.ID }}</h4>
+            </v-card-title>
+            <v-divider></v-divider>
+            <v-list dense>
+              <v-list-tile>
+                <v-list-tile-action>Title:</v-list-tile-action>
+                <v-list-tile-content>{{ props.item.Title }}</v-list-tile-content>
+              </v-list-tile>
+              <v-list-tile>
+                <v-list-tile-action>Type:</v-list-tile-action>
+                <v-list-tile-content>{{ props.item.Type }}</v-list-tile-content>
+              </v-list-tile>
+              <v-list-tile>
+                <v-list-tile-action>Priority:</v-list-tile-action>
+                <v-list-tile-content>{{ props.item.Priority }}</v-list-tile-content>
+              </v-list-tile>
+            </v-list>
+            <v-card-text>
+              <v-divider light></v-divider>
+              <h4>Preconditions:</h4>
+              <div class="tr-markdown" v-html="convertMarkdownToHtml(props.item.Preconditions)"></div>
+
+              <v-divider light></v-divider>
+              <h4>Steps:</h4>
+              <div class="tr-markdown" v-html="convertMarkdownToHtml(props.item.Steps)"></div>
+
+              <v-divider light></v-divider>
+              <h4>ExpectedResult:</h4>
+              <div class="tr-markdown" v-html="convertMarkdownToHtml(props.item.ExpectedResult)"></div>
+            </v-card-text>
+          </v-card>
+        </v-flex>
+      </v-data-iterator>
+    </v-container>
+    <v-snackbar
+            v-model="snackbar"
+            left
+            top
+            :timeout="snackbarTimeout"
+    >
+      {{ snackbarText }}
+      <v-btn
+              color="pink"
+              flat
+              @click="snackbar = false"
+      >
+        Close
+      </v-btn>
+    </v-snackbar>
+  </v-app>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<script>
+  let app = new Vue({
+    el: '#app',
+    data: {
+      rowsPerPageItems: [
+        1,
+        {
+          text: 'ALL',
+          value: -1
+        }
+      ],
+      pagination: {
+        rowsPerPage: 1
+      },
+      items: [],
+      saneConverter: null,
+      loading: true,
+      snackbar: false,
+      snackbarText: "",
+      snackbarTimeout: 1000,
+    },
+
+    created: function () {
+      let self = this;
+
+      // self.saneConverter = Markdown.getSanitizingConverter();
+      self.saneConverter = new Markdown.Converter();
+
+      // テーブルをなんとなくサポートするHook処理を登録
+      self.saneConverter.hooks.chain("preBlockGamut", function (text) {
+
+        return text.replace(/((^\|\|.+\n(^\|\|.+\n)*\n*)+)/gm,
+          function (wholeMatch, m1) {
+            // console.log("wholeMatch:" + wholeMatch);
+            // console.log("m1:" + m1);
+
+            let splits = m1.split("\n");
+            let table = "<table>";
+            for (let i = 0; i < splits.length; i++) {
+              let line = splits[i];
+              if (/^\|\|\|.*$/g.test(line)) {
+                // ヘッダ行
+                let inners = line.replace("|||", "").split("|");
+                let str = "<tr>";
+                for (let r in inners) {
+                  str += "<th>" + inners[r].trim() + "</th>";
+                }
+                str += "</tr>";
+                table += str;
+              } else if (!/^$/.test(line)) {
+                // ヘッダ行ではない
+                let inners = line.replace(/^(\|\|)(.+)/, "$2").split("|");
+                let str = "<tr>";
+                for (let r in inners) {
+                  str += "<td>" + inners[r].trim() + "</td>";
+                }
+                str += "</tr>";
+                table += str;
+              }
+            }
+            table += "</table>\n";
+
+            return table;
+          }
+        );
+      });
+
+      axios.get('/api/testcases')
+        .then(function (response) {
+          self.items = response.data;
+          self.loading = false;
+        })
+        .catch(reason => {
+          console.error(reason);
+          self.loading = false;
+        });
+
+      // WS
+      var conn = new WebSocket("ws://localhost:10080/ws");
+      conn.onclose = function(evt) {
+        console.log('Connection closed');
+      };
+      conn.onmessage = function(evt) {
+        console.log('msg rcv.');
+        let data = JSON.parse(evt.data);
+        if (data.err) {
+            console.error(data.err);
+            self.snackbarText = "Error: " + data.err;
+            self.snackbarTimeout = 10 * 1000;
+        } else {
+            self.items = data.testCases;
+            self.snackbarText = "Updated.";
+            self.snackbarTimeout = 1000;
+        }
+        self.snackbar = true;
+      };
+
+      // key
+      document.addEventListener("keydown", function(e) {
+        switch (e.key) {
+          case "ArrowLeft":
+            app.prevPage();
+            break;
+          case "ArrowRight":
+            app.nextPage();
+            break;
+        }
+      });
+
+    },
+
+    methods: {
+      convertMarkdownToHtml: function (md) {
+        return this.saneConverter.makeHtml(md);
+      },
+      nextPage: function () {
+        if (this.pagination.rowsPerPage < 0 ||
+          this.pagination.page * this.pagination.rowsPerPage >= this.$refs["dataiterator"].itemsLength ||
+          this.$refs["dataiterator"].pageStop < 0) {
+          return;
+        }
+        const cp = this.$refs["dataiterator"].computedPagination.page;
+        this.$refs["dataiterator"].updatePagination({page: cp + 1,})
+      },
+      prevPage: function () {
+        const cp = this.$refs["dataiterator"].computedPagination.page;
+        if (cp === 1) {
+          return;
+        }
+        this.$refs["dataiterator"].updatePagination({page: cp - 1,})
+      }
+    },
+
+  });
+</script>
+
+</body>
+</html>

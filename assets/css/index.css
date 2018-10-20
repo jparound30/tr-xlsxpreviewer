@@ -1,0 +1,37 @@
+body {
+    background-color: White;
+    font-family: sans-serif;
+}
+
+blockquote {
+    border-left: 2px dotted #888;
+    padding-left: 5px;
+    background: #d0f0ff;
+}
+
+table, th, td {
+    border-collapse: collapse;
+    border: #999999 1px solid;
+}
+
+th {
+    background: #f5f5f5;
+    font-weight: bold;
+    color: #505050
+}
+
+.tr-markdown > p {
+    white-space: pre-wrap;
+}
+
+.tr-markdown table th, .tr-markdown table td {
+    padding: 8px;
+    margin: 0;
+    text-align: left;
+    line-height: 1.2;
+    border: 1px solid #d7d7d7;
+    vertical-align: top;
+
+}
+
+[v-cloak] > * { display:none; }
