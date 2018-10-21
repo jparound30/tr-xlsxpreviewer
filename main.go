@@ -462,9 +462,21 @@ const (
 	DefaultOutputFile = "./testcase.csv"
 )
 
+func PrintUsage() {
+	_, _ = fmt.Fprintf(os.Stderr, `
+This tool uses port 10080 for internal web server API.
+After running this tool, access "http://localhost:10080" with your favarite browser.
+
+`)
+}
 func main() {
 
 	// Parse arguments
+	flag.Usage = func() {
+		_, _ = fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		PrintUsage()
+		flag.PrintDefaults()
+	}
 	flag.CommandLine.Init(os.Args[0], flag.ExitOnError)
 
 	flag.StringVar(&inputFile, "input", DefaultInputFile, "Specify file path of input [XLSX file].")
@@ -494,6 +506,8 @@ func main() {
 	http.HandleFunc("/api/testcases", testCaseDataHandler)
 	http.HandleFunc("/api/downloadCsv", testCaseDownloadCsvHandler)
 	http.HandleFunc("/", assetsHandler)
+
+	flag.Usage()
 
 	log.Fatal(http.ListenAndServe("localhost:10080", nil))
 }

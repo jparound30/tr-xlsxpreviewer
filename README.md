@@ -3,6 +3,18 @@
 * Export CSV file ( for import into TestRail)
 * Simple and Realtime preview of rich-text formatting text.
 
+## Usage
+```
+This tool uses port 10080 for internal web server API.
+After running this tool, access "http://localhost:10080" with your favarite browser.
+
+  -input string
+    	Specify file path of input [XLSX file]. (default "./testcase.xlsx")
+  -output string
+    	Specify file path of output [CSV file]. (default "./testcase.csv")
+```
+
+
 
 ### Notice
 This software uses the following libraries / frameworks.
