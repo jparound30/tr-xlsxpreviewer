@@ -32,6 +32,10 @@ https://github.com/gorilla/websocket
 Cross-platform file system notifications for Go.  
 https://github.com/fsnotify/fsnotify
 
+###### goblet
+library and cmd tools set for managment assets like go-bindata or go-assets
+https://github.com/deadcheat/goblet
+
 ##### Javascript
 ###### Vue.js
 A progressive, incrementally-adoptable JavaScript framework for building UI on the web.  
@@ -41,7 +45,7 @@ https://vuejs.org/
 Material Component Framework for Vue.js 2  
 https://vuetifyjs.com/en/
 
-###### pagedown  [/asserts/js/pagedown]
+###### pagedown  [/assets/js/pagedown]
 A javascript port of Markdown, as used on Stack Overflow and the rest of Stack Exchange network.  
 https://github.com/StackExchange/pagedown
 
